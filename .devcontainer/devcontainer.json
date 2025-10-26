@@ -1,0 +1,45 @@
+{
+	"name": "Blazor WASM Dev",
+	"image": "mcr.microsoft.com/devcontainers/dotnet:1-9.0-bookworm",
+	"features": {
+		"ghcr.io/devcontainers/features/git:1": {},
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"username": "vscode"
+		}
+	},
+	"containerEnv": {
+		"ASPNETCORE_ENVIRONMENT": "Development",
+		"DOTNET_USE_POLLING_FILE_WATCHER": "1",
+		"DOTNET_WATCH_RESTART_ON_RUDE_EDIT": "1",
+		"DOTNET_WATCH_SUPPRESS_LAUNCH_BROWSER": "1",
+		"ConnectionStrings__Main": "Server=host.docker.internal,1433;Database=MiniTicketing;User Id=miniapp;Password=YourStrong!Passw0rd;TrustServerCertificate=true",
+		"SEQ__URL": "http://host.docker.internal:5341"
+	},
+	"forwardPorts": [
+		5173,
+		5000
+	],
+	"portsAttributes": {
+		"5173": {
+			"label": "Blazor WASM (standalone)"
+		},
+		"5000": {
+			"label": "Web API (Swagger)"
+		}
+	},
+	"postCreateCommand": "bash -lc 'cd \"$WORKSPACE_FOLDER\" && dotnet workload install wasm-tools && dotnet --info && dotnet restore && dotnet tool restore'",
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-dotnettools.csdevkit",
+				"ms-dotnettools.csharp",
+				"editorconfig.editorconfig",
+      	"codex-chatgpt.codex-chatgpt"
+			],
+			"settings": {
+				"dotnet.server.useOmnisharp": false
+			}
+		}
+	},
+	"remoteUser": "vscode"
+}

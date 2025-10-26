@@ -1,0 +1,49 @@
+# Build outputs
+bin/
+obj/
+out/
+TestResults/
+
+# User-specific settings
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+
+# IDE state
+.vs/
+.vscode/
+.idea/
+
+# Logs and diagnostics
+*.log
+*.tlog
+*.svclog
+
+# ASP.NET Core
+appsettings.*.local.json
+appsettings.Local.json
+
+# .NET tooling
+/packages/
+project.lock.json
+project.fragment.lock.json
+
+# Rider / JetBrains
+*.DotSettings.user
+
+# Frontend artifacts
+node_modules/
+dist/
+wwwroot/lib/
+
+# Docker / OS
+*.swp
+*.tmp
+*.DS_Store
+
+# Coverage / analysis
+coverage*/
+*.coverage
+*.coveragexml
