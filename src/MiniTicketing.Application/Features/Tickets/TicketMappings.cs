@@ -6,7 +6,7 @@ namespace MiniTicketing.Application.Features.Tickets;
 
 public static class TicketMappings
 {
-  public static Ticket ToNewTicket(this TicketDto ticketDto)
+  public static Ticket ToNewTicket(this TicketCreateDto ticketDto)
       => new Ticket
       {
         Id = Guid.NewGuid(),
@@ -35,7 +35,7 @@ public static class TicketMappings
   public static IReadOnlyList<TicketDto> ToTicketDtos(this IEnumerable<Ticket> tickets) =>
      tickets.Select(t => t.ToTicketDto()).ToList();
         
-  public static void ApplyChangesFrom(this Ticket ticket, TicketDto dto)
+  public static void ApplyChangesFrom(this Ticket ticket, TicketUpdateDto dto)
   {
       ticket.Title = dto.Title!.Trim();
       ticket.Description = dto.Description?.Trim();

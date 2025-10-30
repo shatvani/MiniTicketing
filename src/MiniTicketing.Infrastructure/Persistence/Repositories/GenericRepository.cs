@@ -1,5 +1,7 @@
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MiniTicketing.Application.Abstractions.Persistence;
 using MiniTicketing.Domain.Entities;
 
@@ -56,11 +58,45 @@ public sealed class GenericRepository<TEntity> : IGenericRepository<TEntity>
         return await query.AsNoTrackingWithIdentityResolution().ToListAsync(ct);
     }
 
+    public async Task<TEntity?> GetSingleAsync(
+        Expression<Func<TEntity, bool>> filter,
+        IEnumerable<Expression<Func<TEntity, object>>>? includes = null,
+        CancellationToken ct = default)
+    {
+        IQueryable<TEntity> query = _set;
+
+        if (includes is not null)
+        {
+            foreach (var include in includes)
+            {
+                query = query.Include(include);
+            }
+        }
+
+        query = query.Where(filter);
+
+        return await query.FirstOrDefaultAsync(ct);
+    }
+
     public void Update(TEntity entity) => _set.Update(entity);
-    
+
     public Task RemoveAsync(TEntity entit, CancellationToken ct = default)
     {
         _set.Remove(entit);
         return Task.CompletedTask;
     }
+    public void Detach(TEntity entity)
+    {
+        _dbContext.Entry(entity).State = EntityState.Detached;
+    }
+
+    public void SetUnchanged(TEntity entity)
+    {
+        var entry = _dbContext.Entry(entity);
+        entry.CurrentValues.SetValues(entry.OriginalValues);
+        entry.State = EntityState.Unchanged;
+    }
+    
+    public Task<int> SaveChangesAsync(CancellationToken ct = default)
+        => _dbContext.SaveChangesAsync(ct);
 }

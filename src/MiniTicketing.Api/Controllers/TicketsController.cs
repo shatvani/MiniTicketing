@@ -49,10 +49,10 @@ public sealed class TicketsController : ControllerBase
   // [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
   public async Task<IActionResult> Create([FromForm] TicketHttpRequest form, CancellationToken ct)
   {
-    TicketDto? ticketDto;
+    TicketCreateDto? ticketDto;
     try
     {
-      ticketDto = JsonSerializer.Deserialize<TicketDto>(form.TicketJson, _jsonOptions);
+      ticketDto = JsonSerializer.Deserialize<TicketCreateDto>(form.TicketJson, _jsonOptions);
     }
     catch (JsonException)
     {
@@ -101,10 +101,10 @@ public sealed class TicketsController : ControllerBase
   [HttpPut("{id:guid}")]
   public async Task<IActionResult> Update(Guid id, [FromForm] TicketHttpRequest form, CancellationToken ct)
   {
-    TicketDto? ticketDto;
+    TicketUpdateDto? ticketDto;
     try
     {
-      ticketDto = JsonSerializer.Deserialize<TicketDto>(form.TicketJson, _jsonOptions);
+      ticketDto = JsonSerializer.Deserialize<TicketUpdateDto>(form.TicketJson, _jsonOptions);
     }
     catch (JsonException)
     {
@@ -124,8 +124,19 @@ public sealed class TicketsController : ControllerBase
         instance: HttpContext.Request.Path);
     }
   
+    List<FileUploadDto> fileUploadDto = new();
 
-    var result = await _mediator.Send(new UpdateTicketCommand(ticketDto), ct);
+    foreach (IFormFile file in form.Files)
+    {
+      if (file.Length > 0)
+      {
+        await using var memoryStream = new MemoryStream();
+        await file.CopyToAsync(memoryStream);
+        fileUploadDto.Add(new FileUploadDto { FileName = file.FileName, Content = memoryStream.ToArray(), ContentType = file.ContentType });
+      }
+    }
+
+    var result = await _mediator.Send(new UpdateTicketCommand(ticketDto, fileUploadDto), ct);
 
     if (!result.Success)
     {

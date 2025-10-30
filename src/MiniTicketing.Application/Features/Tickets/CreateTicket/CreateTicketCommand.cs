@@ -7,7 +7,7 @@ using MiniTicketing.Domain.Specifications;
 
 namespace MiniTicketing.Application.Features.Tickets.CreateTicket;
 
-public sealed record CreateTicketCommand(TicketDto ticketDto, List<FileUploadDto> fileUploadDtos) : ICommand<Result<TicketResponse>>;
+public sealed record CreateTicketCommand(TicketCreateDto ticketDto, List<FileUploadDto> fileUploadDtos) : ICommand<Result<TicketResponse>>;
 
 public sealed class CreateTicketCommandHandler
     : IRequestHandler<CreateTicketCommand, Result<TicketResponse>>
