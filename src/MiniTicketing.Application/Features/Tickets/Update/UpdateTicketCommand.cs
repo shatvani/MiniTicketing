@@ -2,6 +2,7 @@ using System.Security;
 using Microsoft.Extensions.Logging;
 using MiniTicketing.Application.Abstractions;
 using MiniTicketing.Application.Abstractions.Persistence;
+using MiniTicketing.Application.Abstractions.Services;
 using MiniTicketing.Application.Common.Results;
 using MiniTicketing.Domain.Entities;
 using MiniTicketing.Domain.Errors;
@@ -16,17 +17,18 @@ public sealed class UpdateTicketCommandHandler
 {
   private readonly IGenericRepository<Ticket> _ticketRepository;
   private readonly IGenericRepository<TicketAttachment> _ticketAttachmentRepository;
-  private readonly IFileStorageService _fileStorage;
+
+  private readonly IAttachmentStagingService _attachmentStagingService;
   readonly ILogger<UpdateTicketCommandHandler> _logger;
 
   public UpdateTicketCommandHandler(IGenericRepository<Ticket> ticketRepository,
-    IFileStorageService fileStorage,
+    IAttachmentStagingService attachmentStagingService,
     ILogger<UpdateTicketCommandHandler> logger,
     IGenericRepository<TicketAttachment> ticketAttachmentRepository)
   {
     _ticketRepository = ticketRepository;
     _ticketAttachmentRepository = ticketAttachmentRepository;
-    _fileStorage = fileStorage;
+    _attachmentStagingService = attachmentStagingService;
     _logger = logger;
   }
 
@@ -82,8 +84,8 @@ public sealed class UpdateTicketCommandHandler
         // await RemoveAttachmentFilesAsync(attachment.Path!, ct);
         if (attachment.Path != null)
         {
-          await CopyAttachmentFilesAsync(attachment.Path, $"deleted/{attachment.Path}", ct);
-          await RemoveAttachmentFilesAsync(attachment.Path, ct);
+          await _attachmentStagingService.CopyAttachmentFilesAsync(attachment.Path, $"deleted/{attachment.Path}", ct);
+          await _attachmentStagingService.RemoveAttachmentFilesAsync(attachment.Path, ct);
           files.Add((attachment.Path, $"deleted/{attachment.Path}", attachment));
           ticket.TicketAttachments?.Remove(attachment);
         }
@@ -93,8 +95,8 @@ public sealed class UpdateTicketCommandHandler
     {
       foreach (var removedFile in files)
       {
-        await CopyAttachmentFilesAsync(removedFile.Item2, removedFile.Item1, ct);
-        await RemoveAttachmentFilesAsync(removedFile.Item2, ct);
+        await _attachmentStagingService.CopyAttachmentFilesAsync(removedFile.Item2, removedFile.Item1, ct);
+        await _attachmentStagingService.RemoveAttachmentFilesAsync(removedFile.Item2, ct);
 
         if (ticket.TicketAttachments != null && ticket.TicketAttachments.Any(ta => ta.Id == removedFile.Item3.Id) == false)
         {
@@ -148,7 +150,7 @@ public sealed class UpdateTicketCommandHandler
       foreach (var fileToUpload in filesToUpload)
       {
 
-        await AddAttachmentFilesAsync(fileToUpload, ct);
+        await _attachmentStagingService.AddAttachmentFilesAsync(fileToUpload, ct);
         //_logger.LogInformation("{File} is added", fileToUpload.Item1);
         uploadedFiles.Add(fileToUpload.Item1);
       }
@@ -157,7 +159,7 @@ public sealed class UpdateTicketCommandHandler
     {
       foreach (var uploadedFile in uploadedFiles)
       {
-        await RemoveAttachmentFilesAsync($"added/{uploadedFile}", ct);
+        await _attachmentStagingService.RemoveAttachmentFilesAsync($"added/{uploadedFile}", ct);
       }
 
       foreach (var newAttachment in newAttachments)
@@ -175,32 +177,17 @@ public sealed class UpdateTicketCommandHandler
     
     foreach (var removedFile in files)
     {
-      await RemoveAttachmentFilesAsync(removedFile.Item2, ct);
+      await _attachmentStagingService.RemoveAttachmentFilesAsync(removedFile.Item2, ct);
     }
 
     foreach (var uploadedFile in uploadedFiles)
     {
-      await CopyAttachmentFilesAsync($"added/{uploadedFile}", uploadedFile, ct);
-      await RemoveAttachmentFilesAsync($"added/{uploadedFile}", ct);
+      await _attachmentStagingService.CopyAttachmentFilesAsync($"added/{uploadedFile}", uploadedFile, ct);
+      await _attachmentStagingService.RemoveAttachmentFilesAsync($"added/{uploadedFile}", ct);
     }
 
     await _ticketRepository.SaveChangesAsync(ct);
     
     return Result<TicketDto>.Ok(ticket.ToTicketDto());
-  }
-
-  private async Task AddAttachmentFilesAsync((string, FileUploadDto) attachment, CancellationToken ct)
-  {
-    await _fileStorage.UploadAsync(new MemoryStream(attachment.Item2.Content), $"added/{attachment.Item1}", attachment.Item2.ContentType, ct);
-  }
-
-  private async Task RemoveAttachmentFilesAsync(string objectName, CancellationToken ct)
-  {
-    await _fileStorage.DeleteAsync(objectName, ct);
-  }
-
-  private async Task CopyAttachmentFilesAsync(string srcName, string destName, CancellationToken ct)
-  {
-    await _fileStorage.CopyAsync(srcName, destName, ct);
   }
 }
