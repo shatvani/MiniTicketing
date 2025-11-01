@@ -8,12 +8,8 @@ using MiniTicketing.Application; // ha van Assembly marker
 using Serilog;
 using MiniTicketing.Application.Abstractions;
 using MiniTicketing.Application.Core;
-using MiniTicketing.Application.Behaviors;
-using MiniTicketing.Api.Behaviors;
 // Ha Scrutort használsz a handler scan-hez:
 //using Scrutor;
-using MiniTicketing.Application.Abstractions.Persistence;
-using MiniTicketing.Infrastructure.Persistence.Storage;
 using MiniTicketing.Infrastructure.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,7 +28,8 @@ var conn =
     builder.Configuration.GetConnectionString("Main")
     ?? Environment.GetEnvironmentVariable("ConnectionStrings__Main");
 
-builder.Services.AddInfrastructure(conn);
+builder.Services.ConfigureApplicationServices();
+builder.Services.ConfigureApplicationServices(conn);
 
 builder.Services.AddValidatorsFromAssembly(
     typeof(AssemblyMarker).Assembly,            // vagy bármely Application típus assembly-je
@@ -40,9 +37,6 @@ builder.Services.AddValidatorsFromAssembly(
 
 // Mediator + pipeline-ok
 builder.Services.AddScoped<IMediator, Mediator>();
-builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
-builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(TransactionBehavior<,>));
-builder.Services.AddScoped(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
 
 // Handlerek felvétele (Scrutorral)
 builder.Services.Scan(s => s
@@ -72,9 +66,6 @@ builder.Services.AddCors(o =>
 builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy())
     .AddDbContextCheck<MiniTicketingDbContext>("db", tags: new[] { "db" });
-
-builder.Services.Configure<MinioOptions>(builder.Configuration.GetSection("Minio"));
-builder.Services.AddScoped<IFileStorageService, MinioFileStorageService>();
 
 var app = builder.Build();
 
