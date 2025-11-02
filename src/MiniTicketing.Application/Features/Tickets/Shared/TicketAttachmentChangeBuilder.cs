@@ -43,4 +43,38 @@ public sealed class TicketAttachmentChangeBuilder : ITicketAttachmentChangeBuild
             ToAdd = newAttachments
         };
     }
+
+
+    // CREATE
+    public AttachmentChangeSet BuildForCreate(
+        Ticket ticket,
+        IReadOnlyList<FileUploadDto> filesToUpload)
+    {
+        var toAdd = new List<AttachmentToAdd>();
+
+        foreach (var file in filesToUpload)
+        {
+            var attachment = new TicketAttachment
+            {
+                Id = Guid.NewGuid(),
+                TicketId = ticket.Id,
+                SizeInBytes = file.Content.Length,
+                Path = $"{ticket.Id}/{Guid.NewGuid()}_{file.FileName}",
+                OriginalFileName = file.FileName,
+                MimeType = file.ContentType
+            };
+
+            toAdd.Add(new AttachmentToAdd
+            {
+                Attachment = attachment,
+                File = file
+            });
+        }
+
+        return new AttachmentChangeSet
+        {
+            ToRemove = new List<TicketAttachment>(),  // create-kor nincs remove
+            ToAdd = toAdd
+        };
+    }
 }

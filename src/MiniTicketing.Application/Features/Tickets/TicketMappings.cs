@@ -10,13 +10,14 @@ public static class TicketMappings
       => new Ticket
       {
         Id = Guid.NewGuid(),
-        Title = ticketDto.Title,
-        Description = ticketDto.Description,
+        Title = ticketDto.Title.Trim(),
+        Description = ticketDto.Description?.Trim(),
         Status = ticketDto.Status,
         Priority = ticketDto.Priority,
         ReporterId = ticketDto.ReporterId,
         AssigneeId = ticketDto.AssigneeId,
-        DueDateUtc = ticketDto.DueDateUtc
+        DueDateUtc = ticketDto.DueDateUtc,
+        TicketAttachments = new List<TicketAttachment>()
       };
 
   public static TicketDto ToTicketDto(this Ticket ticket)

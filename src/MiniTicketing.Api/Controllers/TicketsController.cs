@@ -82,9 +82,26 @@ public sealed class TicketsController : ControllerBase
   
   [HttpPut("{id:guid}")]
   public async Task<IActionResult> Update(
+    Guid id,
     [ModelBinder(typeof(UpdateTicketFormBinder))] UpdateTicketForm request,
      CancellationToken ct)
   {
+    // 1) route vs body id ellenőrzés
+    if (request.Ticket.Id == Guid.Empty)
+    {
+      // ha a kliens nem küldött id-t a JSON-ban, akkor vegyük át a route-ból
+      request.Ticket.Id = id;
+    }
+    else if (request.Ticket.Id != id)
+    {
+      // route/body mismatch → 400
+      return Problem(
+          statusCode: StatusCodes.Status400BadRequest,
+          title: "Route/body mismatch",
+          type: DomainErrorCodes.Common.ValidationError,
+          instance: HttpContext.Request.Path);
+    }
+    
     List<FileUploadDto> fileUploadDto = new();
 
     foreach (IFormFile file in request.Files)

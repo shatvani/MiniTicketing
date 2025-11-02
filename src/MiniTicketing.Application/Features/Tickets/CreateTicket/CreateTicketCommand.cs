@@ -1,6 +1,7 @@
 using MiniTicketing.Application.Abstractions;
 using MiniTicketing.Application.Abstractions.Persistence;
 using MiniTicketing.Application.Common.Results;
+using MiniTicketing.Application.Features.Tickets.Shared;
 using MiniTicketing.Domain.Entities;
 using MiniTicketing.Domain.Errors;
 using MiniTicketing.Domain.Specifications;
@@ -12,57 +13,50 @@ public sealed record CreateTicketCommand(TicketCreateDto ticketDto, List<FileUpl
 public sealed class CreateTicketCommandHandler
     : IRequestHandler<CreateTicketCommand, Result<TicketResponse>>
 {
-    private readonly IGenericRepository<Ticket> _ticketRepository;
-    private readonly IFileStorageService _fileStorage;
+    private readonly ITicketRepository _ticketRepository;
+    private readonly ITicketAttachmentChangeBuilder _attachmentChangeBuilder;
+    private readonly IAttachmentUpdateOrchestrator _attachmentOrchestrator;
 
-    public CreateTicketCommandHandler(IGenericRepository<Ticket> ticketRepository, IFileStorageService fileStorage)
-    { 
+    public CreateTicketCommandHandler(
+        ITicketRepository ticketRepository,
+        ITicketAttachmentChangeBuilder attachmentChangeBuilder,
+        IAttachmentUpdateOrchestrator attachmentOrchestrator)
+    {
         _ticketRepository = ticketRepository;
-        _fileStorage = fileStorage; 
+        _attachmentChangeBuilder = attachmentChangeBuilder;
+        _attachmentOrchestrator = attachmentOrchestrator;
     }
 
     public async Task<Result<TicketResponse>> Handle(CreateTicketCommand request, CancellationToken ct)
     {
-        if (request.ticketDto.DueDateUtc != null)
+        // 1) domain due date check
+        if (request.ticketDto.DueDateUtc is not null)
         {
-            var dueDateSpecResult = DueDateNotPast.IsSatisfiedBy(request.ticketDto.DueDateUtc.Value);
-            if (!dueDateSpecResult.IsSatisfied)
-                return Result<TicketResponse>.Fail(dueDateSpecResult.ErrorCode ?? DomainErrorCodes.Ticket.DueDateInPast);
+            var due = DueDateNotPast.IsSatisfiedBy(request.ticketDto.DueDateUtc.Value);
+            if (!due.IsSatisfied)
+                return Result<TicketResponse>.Fail(due.ErrorCode ?? DomainErrorCodes.Ticket.DueDateInPast);
         }
+        // 2) dto -> domain
+        var ticket = request.ticketDto.ToNewTicket();
 
-        var entity = request.ticketDto.ToNewTicket();
-        List<string> savedFilesObjectName = new();
-        try {
-            if (entity.Id != Guid.Empty)
-            {
-                foreach (var fileUploadDto in request.fileUploadDtos)
-                {
-                    var objectName = $"{entity.Id}/{Guid.NewGuid()}_{fileUploadDto.FileName}";
-                    savedFilesObjectName.Add(objectName);
-                    await _fileStorage.UploadAsync(new MemoryStream(fileUploadDto.Content), objectName, fileUploadDto.ContentType, ct);
-                    entity.TicketAttachments.Add(new TicketAttachment
-                    {
-                        Id = Guid.NewGuid(),
-                        TicketId = entity.Id,
-                        SizeInBytes = fileUploadDto.Content.Length,
-                        Path = objectName,
-                        OriginalFileName = fileUploadDto.FileName,
-                        MimeType = fileUploadDto.ContentType
-                    });
-                }
-            }       
-       
-            await _ticketRepository.AddAsync(entity, ct);
-        }
-        catch 
+        // 3) attachment changeset create-re
+        var changeSet = _attachmentChangeBuilder.BuildForCreate(ticket, request.fileUploadDtos);
+
+        // 4) storage + ticket.TicketAttachments feltöltés
+        try
         {
-            foreach (var objectName in savedFilesObjectName) 
-            {
-                await _fileStorage.DeleteAsync(objectName, ct);
-            }
+            await _attachmentOrchestrator.ApplyAsync(ticket, changeSet, ct);
+        }
+        catch
+        {
+            // itt nincs SetUnchanged, mert új ticket
             return Result<TicketResponse>.Fail(DomainErrorCodes.Common.Conflict);
-        }        
+        }
 
-        return Result<TicketResponse>.Ok(new TicketResponse(entity.Id));
+        // 5) DB mentés
+        await _ticketRepository.AddAsync(ticket, ct);
+        await _ticketRepository.SaveChangesAsync(ct);       
+
+        return Result<TicketResponse>.Ok(new TicketResponse(ticket.Id));
     }
 }
