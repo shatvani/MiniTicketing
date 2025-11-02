@@ -3,6 +3,8 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using MiniTicketing.Api.Middleware; // ⬅ saját middleware-ek
 using MiniTicketing.Infrastructure;
 using MiniTicketing.Infrastructure.Persistence;
+using MiniTicketing.Infrastructure.Options;
+using MiniTicketing.Infrastructure.Persistence.Storage;
 using FluentValidation;
 using MiniTicketing.Application; // ha van Assembly marker
 using Serilog;
@@ -10,7 +12,7 @@ using MiniTicketing.Application.Abstractions;
 using MiniTicketing.Application.Core;
 // Ha Scrutort használsz a handler scan-hez:
 //using Scrutor;
-using MiniTicketing.Infrastructure.Options;
+using MiniTicketing.Application.Abstractions.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +69,10 @@ builder.Services.AddHealthChecks()
     .AddCheck("self", () => HealthCheckResult.Healthy())
     .AddDbContextCheck<MiniTicketingDbContext>("db", tags: new[] { "db" });
 
+builder.Services.Configure<MinioOptions>(
+    builder.Configuration.GetSection("Minio"));
+builder.Services.AddScoped<IFileStorageService, MinioFileStorageService>();
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -75,9 +81,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // --- Pipeline ---
-app.UseCorrelationId();         // 0) legyen CorrelationId fejléced + LogContext
-app.UseSerilogRequestLogging(); // 1) request log (CorrelationId már a LogContextben)
-app.UseProblemDetails();        // 2) egykapus hiba/ProblemDetails
+app.UseCorrelationId();          // legyen id
+app.UseProblemDetails();         // EZ fogja el a kivételeket és LOGOL
+app.UseSerilogRequestLogging();  // ez már csak a requestet logolja
 
 app.UseCors("default");
 app.MapControllers();

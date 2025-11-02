@@ -1,6 +1,65 @@
-@MiniTicketing.Api_HostAddress = http://localhost:5235
+@MiniTicketing_Api_HostAddress = http://localhost:5235
 
-GET {{MiniTicketing.Api_HostAddress}}/weatherforecast/
+### list
+GET {{MiniTicketing_Api_HostAddress}}/api/tickets
+Accept: application/json
+
+
+
+### get by id
+@id = 9AF55179-1C14-440C-9103-31950CF2169B
+GET {{MiniTicketing_Api_HostAddress}}/api/tickets/{{id}}
 Accept: application/json
 
 ###
+# CREATE ticket (multipart)
+POST {{MiniTicketing_Api_HostAddress}}/api/tickets
+Content-Type: multipart/form-data; boundary=Boundary123
+
+--Boundary123
+Content-Disposition: form-data; name="ticket"
+
+{
+  "title": "Ticket from .http",
+  "description": "Created from VS Code .http file",
+  "status": 1,
+  "priority": 1,
+  "reporterId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "assigneeId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "dueDateUtc": null
+}
+--Boundary123
+Content-Disposition: form-data; name="files"; filename="note.txt"
+Content-Type: text/plain
+
+Hello from .http
+--Boundary123--
+
+###
+# UPDATE ticket (multipart)
+# A {{id}} helyére tedd majd be a tényleges ticket GUID-ját
+@id = e5969c79-e104-4b1b-8a84-491d2ddd7c45
+
+PUT {{MiniTicketing_Api_HostAddress}}/api/tickets/{{id}}
+Content-Type: multipart/form-data; boundary=Boundary123
+
+--Boundary123
+Content-Disposition: form-data; name="ticket"
+
+{
+  "id": "{{id}}",
+  "title": "Updated from .http at second times",
+  "description": "Updated description",
+  "status": 2,
+  "priority": 2,
+  "reporterId": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+  "assigneeId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+  "dueDateUtc": null,
+  "removeAttachmentIds": []
+}
+--Boundary123
+Content-Disposition: form-data; name="files"; filename="update.txt"
+Content-Type: text/plain
+
+Updated file from .http
+--Boundary123--

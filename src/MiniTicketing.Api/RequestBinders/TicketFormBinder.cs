@@ -1,15 +1,15 @@
 using System.Text.Json;
-using MiniTicketing.Api.RequestBinders;
+using MiniTicketing.Api.Requests;
 using MiniTicketing.Application.Features.Tickets;
 
 namespace MiniTicketing.Api.RequestBinders;
 
 public sealed class CreateTicketFormBinder : JsonWithFilesBinderBase<TicketCreateDto>
 {
-  public CreateTicketFormBinder(JsonSerializerOptions options) : base(options) { }
+  public CreateTicketFormBinder() : base(DefaultJson.Options) { }
 }
 
 public sealed class UpdateTicketFormBinder : JsonWithFilesBinderBase<TicketUpdateDto>
 {
-    public UpdateTicketFormBinder(JsonSerializerOptions options) : base(options) { }
+    public UpdateTicketFormBinder() : base(DefaultJson.Options) { }
 }

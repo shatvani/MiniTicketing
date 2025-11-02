@@ -52,7 +52,8 @@ public sealed class TicketsController : ControllerBase
   // (opcionális) nagy file-okhoz:
   // [RequestSizeLimit(50_000_000)]
   // [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
-  public async Task<IActionResult> Create([ModelBinder(typeof(CreateTicketFormBinder))] CreateTicketForm request, CancellationToken ct)
+  public async Task<IActionResult> Create([ModelBinder(typeof(CreateTicketFormBinder))] JsonWithFiles<TicketCreateDto> request,
+  CancellationToken ct)
   {
     List<FileUploadDto> fileUploadDto = new();
 
@@ -66,7 +67,7 @@ public sealed class TicketsController : ControllerBase
       }
     }
 
-    var result = await _mediator.Send(new CreateTicketCommand(request.Ticket, fileUploadDto), ct);
+    var result = await _mediator.Send(new CreateTicketCommand(request.Payload, fileUploadDto), ct);
 
     if (!result.Success)
     {
@@ -83,16 +84,16 @@ public sealed class TicketsController : ControllerBase
   [HttpPut("{id:guid}")]
   public async Task<IActionResult> Update(
     Guid id,
-    [ModelBinder(typeof(UpdateTicketFormBinder))] UpdateTicketForm request,
+    [ModelBinder(typeof(UpdateTicketFormBinder))] JsonWithFiles<TicketUpdateDto> request,
      CancellationToken ct)
   {
     // 1) route vs body id ellenőrzés
-    if (request.Ticket.Id == Guid.Empty)
+    if (request.Payload.Id == Guid.Empty)
     {
       // ha a kliens nem küldött id-t a JSON-ban, akkor vegyük át a route-ból
-      request.Ticket.Id = id;
+      request.Payload.Id = id;
     }
-    else if (request.Ticket.Id != id)
+    else if (request.Payload.Id != id)
     {
       // route/body mismatch → 400
       return Problem(
@@ -114,7 +115,7 @@ public sealed class TicketsController : ControllerBase
       }
     }
 
-    var result = await _mediator.Send(new UpdateTicketCommand(request.Ticket, fileUploadDto), ct);
+    var result = await _mediator.Send(new UpdateTicketCommand(request.Payload, fileUploadDto), ct);
 
     if (!result.Success)
     {

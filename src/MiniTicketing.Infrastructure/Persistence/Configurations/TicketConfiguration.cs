@@ -61,10 +61,5 @@ public class TicketConfiguration : BaseEntityConfiguration<Ticket>
                     je.HasKey("TicketId", "LabelId");
                     je.HasIndex("LabelId");
                 });
-
-        b.HasMany(x => x.TicketAttachments)
-            .WithOne()
-            .HasForeignKey(ta => ta.TicketId)
-            .OnDelete(DeleteBehavior.Cascade);
     }
 }
