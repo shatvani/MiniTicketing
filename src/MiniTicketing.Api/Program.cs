@@ -29,7 +29,7 @@ var conn =
     ?? Environment.GetEnvironmentVariable("ConnectionStrings__Main");
 
 builder.Services.ConfigureApplicationServices();
-builder.Services.ConfigureApplicationServices(conn);
+builder.Services.ConfigureInfrastructureServices(conn);
 
 builder.Services.AddValidatorsFromAssembly(
     typeof(AssemblyMarker).Assembly,            // vagy bármely Application típus assembly-je

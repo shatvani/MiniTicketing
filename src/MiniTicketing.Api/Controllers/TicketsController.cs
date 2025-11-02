@@ -7,6 +7,8 @@ using MiniTicketing.Application.Features.Tickets.GetAll;
 using MiniTicketing.Application.Features.Tickets.Update;
 using MiniTicketing.Domain.Errors;
 using System.Text.Json;
+using MiniTicketing.Api.Requests;
+using MiniTicketing.Api.RequestBinders;
 
 namespace MiniTicketing.Api.Controllers;
 
@@ -17,7 +19,10 @@ public sealed class TicketsController : ControllerBase
   private readonly IMediator _mediator;
   private readonly JsonSerializerOptions _jsonOptions = new(JsonSerializerDefaults.Web);
 
-  public TicketsController(IMediator mediator) => _mediator = mediator;
+  public TicketsController(IMediator mediator) 
+  {
+    _mediator = mediator;
+  }
 
   [HttpGet]
   public async Task<ActionResult<IEnumerable<TicketDto>>> GetAll(CancellationToken ct)
@@ -47,34 +52,11 @@ public sealed class TicketsController : ControllerBase
   // (opcionális) nagy file-okhoz:
   // [RequestSizeLimit(50_000_000)]
   // [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
-  public async Task<IActionResult> Create([FromForm] TicketHttpRequest form, CancellationToken ct)
+  public async Task<IActionResult> Create([ModelBinder(typeof(UpdateTicketFormBinder))] UpdateTicketForm request, CancellationToken ct)
   {
-    TicketCreateDto? ticketDto;
-    try
-    {
-      ticketDto = JsonSerializer.Deserialize<TicketCreateDto>(form.TicketJson, _jsonOptions);
-    }
-    catch (JsonException)
-    {
-      return Problem(
-        statusCode: StatusCodes.Status400BadRequest,
-        title: "Route/body mismatch",
-        type: DomainErrorCodes.Common.ValidationError,
-        instance: HttpContext.Request.Path);
-    }
-
-    if (ticketDto is null)
-    {
-      return Problem(
-        statusCode: StatusCodes.Status400BadRequest,
-        title: "Invalid ticket JSON",
-        type: DomainErrorCodes.Common.ValidationError,
-        instance: HttpContext.Request.Path);
-    }
-
     List<FileUploadDto> fileUploadDto = new();
 
-    foreach (IFormFile file in form.Files)
+    foreach (IFormFile file in request.Files)
     {
       if (file.Length > 0)
       {
@@ -84,7 +66,7 @@ public sealed class TicketsController : ControllerBase
       }
     }
 
-    var result = await _mediator.Send(new CreateTicketCommand(ticketDto, fileUploadDto), ct);
+    var result = await _mediator.Send(new CreateTicketCommand(request.Ticket, fileUploadDto), ct);
 
     if (!result.Success)
     {
@@ -99,34 +81,13 @@ public sealed class TicketsController : ControllerBase
   }
   
   [HttpPut("{id:guid}")]
-  public async Task<IActionResult> Update(Guid id, [FromForm] TicketHttpRequest form, CancellationToken ct)
+  public async Task<IActionResult> Update(
+    [ModelBinder(typeof(UpdateTicketFormBinder))] UpdateTicketForm request,
+     CancellationToken ct)
   {
-    TicketUpdateDto? ticketDto;
-    try
-    {
-      ticketDto = JsonSerializer.Deserialize<TicketUpdateDto>(form.TicketJson, _jsonOptions);
-    }
-    catch (JsonException)
-    {
-      return Problem(
-        statusCode: StatusCodes.Status400BadRequest,
-        title: "Route/body mismatch",
-        type: DomainErrorCodes.Common.ValidationError,
-        instance: HttpContext.Request.Path);
-    }
-
-    if (ticketDto is null)
-    {
-      return Problem(
-        statusCode: StatusCodes.Status400BadRequest,
-        title: "Invalid ticket JSON",
-        type: DomainErrorCodes.Common.ValidationError,
-        instance: HttpContext.Request.Path);
-    }
-  
     List<FileUploadDto> fileUploadDto = new();
 
-    foreach (IFormFile file in form.Files)
+    foreach (IFormFile file in request.Files)
     {
       if (file.Length > 0)
       {
@@ -136,7 +97,7 @@ public sealed class TicketsController : ControllerBase
       }
     }
 
-    var result = await _mediator.Send(new UpdateTicketCommand(ticketDto, fileUploadDto), ct);
+    var result = await _mediator.Send(new UpdateTicketCommand(request.Ticket, fileUploadDto), ct);
 
     if (!result.Success)
     {

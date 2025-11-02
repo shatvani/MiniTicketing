@@ -11,7 +11,7 @@ namespace MiniTicketing.Infrastructure;
 
 public static class InfrastructureServicesRegistration
 {
-    public static IServiceCollection ConfigureApplicationServices(this IServiceCollection services, string? connectionString)
+    public static IServiceCollection ConfigureInfrastructureServices(this IServiceCollection services, string? connectionString)
     {
         if (string.IsNullOrWhiteSpace(connectionString))
             throw new ArgumentException("Connection string 'Main' is missing.", nameof(connectionString));

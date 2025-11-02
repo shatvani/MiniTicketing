@@ -1,7 +1,5 @@
-using System.Collections.Generic;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.ChangeTracking;
 using MiniTicketing.Application.Abstractions.Persistence;
 using MiniTicketing.Domain.Entities;
 

@@ -16,11 +16,12 @@ public sealed record UpdateTicketCommand(TicketUpdateDto ticketDto, List<FileUpl
 public sealed class UpdateTicketCommandHandler
     : IRequestHandler<UpdateTicketCommand, Result<TicketDto>>
 {
-  private readonly IGenericRepository<Ticket> _ticketRepository;
+  private readonly ITicketRepository _ticketRepository;
+  
   private readonly IAttachmentUpdateOrchestrator _attachmentUpdateOrchestrator;
   private readonly ITicketAttachmentChangeBuilder _attachmentChangeBuilder;
 
-  public UpdateTicketCommandHandler(IGenericRepository<Ticket> ticketRepository,
+  public UpdateTicketCommandHandler(ITicketRepository ticketRepository,
     IAttachmentUpdateOrchestrator attachmentUpdateOrchestrator,
     ITicketAttachmentChangeBuilder attachmentChangeBuilder)
   {
@@ -32,9 +33,8 @@ public sealed class UpdateTicketCommandHandler
   public async Task<Result<TicketDto>> Handle(UpdateTicketCommand request, CancellationToken ct)
   {
     // jegy betöltése
-    var ticket = await _ticketRepository.GetSingleAsync(
-        x => x.Id == request.ticketDto.Id,
-        includes: [t => t.TicketAttachments, t => t.Comments, t => t.Labels],
+    var ticket = await _ticketRepository.GetByIdWithDetailsAsync(
+        request.ticketDto.Id,
         ct);
 
     if (ticket is null)
