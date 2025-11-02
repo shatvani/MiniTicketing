@@ -37,6 +37,9 @@ public static class InfrastructureServicesRegistration
         // 5) Orchestrator (DB + storage összefűzéséhez)
         services.AddScoped<IAttachmentUpdateOrchestrator, AttachmentUpdateOrchestrator>();
 
+        // 6) Speciális repository-k
+        services.AddScoped<ITicketRepository, EfTicketReadRepository>();
+
         return services;
     }
 }

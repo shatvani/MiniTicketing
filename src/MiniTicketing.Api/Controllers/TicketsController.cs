@@ -52,7 +52,7 @@ public sealed class TicketsController : ControllerBase
   // (opcionális) nagy file-okhoz:
   // [RequestSizeLimit(50_000_000)]
   // [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
-  public async Task<IActionResult> Create([ModelBinder(typeof(UpdateTicketFormBinder))] UpdateTicketForm request, CancellationToken ct)
+  public async Task<IActionResult> Create([ModelBinder(typeof(CreateTicketFormBinder))] CreateTicketForm request, CancellationToken ct)
   {
     List<FileUploadDto> fileUploadDto = new();
 
