@@ -5,7 +5,9 @@ using MiniTicketing.Application.Features.Tickets.Shared;           // IAttachmen
 using MiniTicketing.Infrastructure.Persistence;                    // MiniTicketingDbContext, EfUnitOfWork
 using MiniTicketing.Infrastructure.Persistence.Repositories;       // GenericRepository<>
 using MiniTicketing.Infrastructure.Persistence.Storage;            // MinioFileStorageService, AttachmentStagingService, AttachmentUpdateOrchestrator
-using MiniTicketing.Application.Abstractions.Services;              // IFileStorageService, IAttachmentStagingService
+using MiniTicketing.Application.Abstractions.Services;
+using MiniTicketing.Application.Features.Tickets;
+using MiniTicketing.Infrastructure.Persistence.Services;              // IFileStorageService, IAttachmentStagingService
 
 namespace MiniTicketing.Infrastructure;
 
@@ -39,6 +41,9 @@ public static class InfrastructureServicesRegistration
 
         // 6) Speciális repository-k
         services.AddScoped<ITicketRepository, EfTicketReadRepository>();
+
+        // Ticket listázó service
+        services.AddScoped<IListReadService<TicketFilter, TicketDto>, EfTicketReadService>(); // read
 
         return services;
     }

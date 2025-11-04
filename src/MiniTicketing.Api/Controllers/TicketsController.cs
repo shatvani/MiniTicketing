@@ -9,6 +9,9 @@ using MiniTicketing.Domain.Errors;
 using System.Text.Json;
 using MiniTicketing.Api.Requests;
 using MiniTicketing.Api.RequestBinders;
+using MiniTicketing.Application.Abstractions.Services;
+using MiniTicketing.Application.Core;
+using System.Runtime.CompilerServices;
 
 namespace MiniTicketing.Api.Controllers;
 
@@ -47,13 +50,34 @@ public sealed class TicketsController : ControllerBase
     return Ok(result.Value);
   }
 
+  [HttpGet("gettickets")]
+  public Task<PagedResult<TicketDto>> GetTickets(
+    [FromQuery] TicketFilter f,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 50,
+    [FromQuery] string? sort = "createdAt desc",
+    CancellationToken ct = default)
+  {
+    var s = SortParser.Parse(sort); // "createdAt desc,name asc" → List<SortBy>
+    return _mediator.Send(new PagedListQuery<TicketFilter, TicketDto>(f, new(page, pageSize), s), ct);
+  }
+  
+  [HttpGet("tickets/stream")]
+  public async IAsyncEnumerable<TicketDto> StreamTickets([FromQuery] TicketFilter f, [FromQuery] string? sort = "createdAt desc", [EnumeratorCancellation] CancellationToken ct = default)
+  {
+      var s = SortParser.Parse(sort);
+      var stream = await _mediator.Send(new StreamListQuery<TicketFilter, TicketDto>(f, s), ct);
+      await foreach (var dto in stream.WithCancellation(ct)) yield return dto;
+  }
+
   [HttpPost]
   [Consumes("multipart/form-data")]
   // (opcionális) nagy file-okhoz:
   // [RequestSizeLimit(50_000_000)]
   // [RequestFormLimits(MultipartBodyLengthLimit = 50_000_000)]
-  public async Task<IActionResult> Create([ModelBinder(typeof(CreateTicketFormBinder))] JsonWithFiles<TicketCreateDto> request,
-  CancellationToken ct)
+  public async Task<IActionResult> Create(
+    [ModelBinder(typeof(CreateTicketFormBinder))] JsonWithFiles<TicketCreateDto> request,
+    CancellationToken ct)
   {
     List<FileUploadDto> fileUploadDto = new();
 

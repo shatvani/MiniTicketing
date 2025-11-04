@@ -10,9 +10,8 @@ using MiniTicketing.Application; // ha van Assembly marker
 using Serilog;
 using MiniTicketing.Application.Abstractions;
 using MiniTicketing.Application.Core;
-// Ha Scrutort használsz a handler scan-hez:
-//using Scrutor;
 using MiniTicketing.Application.Abstractions.Persistence;
+using MiniTicketing.Application.Features.Tickets;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,13 +39,6 @@ builder.Services.AddValidatorsFromAssembly(
 // Mediator + pipeline-ok
 builder.Services.AddScoped<IMediator, Mediator>();
 
-// Handlerek felvétele (Scrutorral)
-builder.Services.Scan(s => s
-    .FromAssemblies(typeof(AssemblyMarker).Assembly)
-    .AddClasses(c => c.AssignableTo(typeof(IRequestHandler<,>)))
-    .AsImplementedInterfaces()
-    .WithScopedLifetime());
-
 builder.Services.AddOpenApi();
 builder.Services
     .AddControllers()
@@ -71,7 +63,6 @@ builder.Services.AddHealthChecks()
 
 builder.Services.Configure<MinioOptions>(
     builder.Configuration.GetSection("Minio"));
-builder.Services.AddScoped<IFileStorageService, MinioFileStorageService>();
 
 var app = builder.Build();
 

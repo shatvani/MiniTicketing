@@ -4,8 +4,6 @@
 GET {{MiniTicketing_Api_HostAddress}}/api/tickets
 Accept: application/json
 
-
-
 ### get by id
 @id = 9AF55179-1C14-440C-9103-31950CF2169B
 GET {{MiniTicketing_Api_HostAddress}}/api/tickets/{{id}}
@@ -13,14 +11,19 @@ Accept: application/json
 
 ###
 # CREATE ticket (multipart)
+# A kérés több részből áll; a részeket a --Boundary123 vonalak választják el.
+# A Content-Disposition: form-data a multipart űrlap egy-egy részének fejléce. Megmondja a szervernek, hogy „ez itt egy űrlapmező”, és (paraméterekkel) melyik mező és/vagy melyik fájl.
 POST {{MiniTicketing_Api_HostAddress}}/api/tickets
+# Ez mondja meg, hogy a kérés több részből áll, és mi választja el őket.
 Content-Type: multipart/form-data; boundary=Boundary123
 
+# A name="ticket" KÖTELEZŐ, mert a bindered ezt keresi (TicketFieldName => "ticket").
+# A JSON-nak pontosan a TicketCreateDto sémáját kell követnie (nálad: title, description, status, priority, Id, assigneeId, dueDateUtc).
 --Boundary123
 Content-Disposition: form-data; name="ticket"
 
 {
-  "title": "Ticket from .http",
+  "title": "Ticket 6 from .http",
   "description": "Created from VS Code .http file",
   "status": 1,
   "priority": 1,
@@ -28,10 +31,16 @@ Content-Disposition: form-data; name="ticket"
   "assigneeId": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
   "dueDateUtc": null
 }
+
+# A name="files" KÖTELEZŐ, mert a binder ezt gyűjti össze listába.
+# A filename és a Content-Type megy majd a FileUploadDto-ba.
+# Rakhatsz több fájlt is: ismételd meg ezt a blokkot még egyszer name="files"-sel.
+# filename="note.txt" – ha van, akkor fájl feltöltésről van szó. Ha nincs, akkor sima szöveges mező.
 --Boundary123
 Content-Disposition: form-data; name="files"; filename="note.txt"
 Content-Type: text/plain
 
+# A végén vagy lezárod --Boundary123---el (két kötőjel a végén), vagy – a VS Code REST Client toleráns – így is működhet.
 Hello from .http
 --Boundary123--
 
@@ -63,3 +72,31 @@ Content-Type: text/plain
 
 Updated file from .http
 --Boundary123--
+
+###
+# Alap lista (default: page=1, pageSize=50, sort="createdAt desc")
+GET {{MiniTicketing_Api_HostAddress}}/api/tickets/gettickets
+Accept: application/json
+
+###
+# GetTickets
+# Lapozva (1. oldal, 2/db), státusz+prio szűrés
+GET {{MiniTicketing_Api_HostAddress}}/api/tickets/gettickets?page=1&pageSize=2&status=2&priority=2
+Accept: application/json
+
+###
+# Keresés (title/description contains), riporteren szűrve
+# (cseréld a GUID-ot valós ReporterId-ra)
+GET {{MiniTicketing_Api_HostAddress}}/api/tickets/gettickets?page=1&pageSize=2&ReporterId=AAAAAAAA-AAAA-AAAA-AAAA-AAAAAAAAAAAA
+Accept: application/json
+
+###
+# Többmezős rendezés: createdAt desc, majd priority asc
+# Figyelj: a szóköz URL-kódolva van (%20)
+GET {{MiniTicketing_Api_HostAddress}}/api/tickets/gettickets?sort=createdAt%20desc,priority%20asc
+Accept: application/json
+
+###
+# Full kombó: szűrés + lapozás + többmezős rendezés
+GET {{MiniTicketing_Api_HostAddress}}/api/tickets/gettickets?status=1&priority=1&search=Created&page=2&pageSize=2&sort=createdAt%20desc,priority%20asc
+Accept: application/json
